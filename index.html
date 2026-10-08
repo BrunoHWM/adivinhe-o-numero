@@ -1,0 +1,382 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <meta
+        name="description"
+        content="Adivinhe o Número - jogo de raciocínio, sorte e pontuação."
+    >
+
+    <title>Adivinhe o Número</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <div class="background">
+        <span class="shape shape-1"></span>
+        <span class="shape shape-2"></span>
+        <span class="shape shape-3"></span>
+        <span class="shape shape-4"></span>
+    </div>
+
+    <main class="container">
+
+        <header class="hero">
+
+            <div class="game-icon">
+                🎯
+            </div>
+
+            <div class="hero-content">
+
+                <p class="eyebrow">
+                    DESAFIO DE RACIOCÍNIO
+                </p>
+
+                <h1>
+                    Adivinhe o
+                    <span>Número</span>
+                </h1>
+
+                <p class="subtitle">
+                    Teste sua sorte, use as dicas e descubra o número
+                    secreto com o menor número de tentativas.
+                </p>
+
+            </div>
+
+        </header>
+
+
+        <section class="game-layout">
+
+            <div class="game-card">
+
+                <div class="card-header">
+
+                    <div>
+                        <span class="section-label">
+                            PARTIDA ATUAL
+                        </span>
+
+                        <h2>
+                            Descubra o número secreto
+                        </h2>
+                    </div>
+
+                    <div class="round">
+                        Rodada
+                        <strong id="roundNumber">1</strong>
+                    </div>
+
+                </div>
+
+
+                <div class="input-group">
+
+                    <label for="playerName">
+                        Seu nome
+                    </label>
+
+                    <input
+                        type="text"
+                        id="playerName"
+                        placeholder="Digite seu nome"
+                        maxlength="20"
+                        autocomplete="off"
+                    >
+
+                </div>
+
+
+                <div class="number-range">
+
+                    <div class="range-item">
+
+                        <span>
+                            MÍNIMO
+                        </span>
+
+                        <strong>
+                            1
+                        </strong>
+
+                    </div>
+
+                    <div class="range-line">
+
+                        <span>
+                            ?
+                        </span>
+
+                    </div>
+
+                    <div class="range-item">
+
+                        <span>
+                            MÁXIMO
+                        </span>
+
+                        <strong>
+                            100
+                        </strong>
+
+                    </div>
+
+                </div>
+
+
+                <div class="input-group">
+
+                    <label for="guess">
+                        Qual é o número?
+                    </label>
+
+                    <div class="guess-wrapper">
+
+                        <input
+                            type="number"
+                            id="guess"
+                            min="1"
+                            max="100"
+                            placeholder="Digite um número"
+                            autocomplete="off"
+                        >
+
+                        <button
+                            id="guessButton"
+                            class="guess-button"
+                            type="button"
+                        >
+                            <span>Adivinhar</span>
+                            <span>→</span>
+                        </button>
+
+                    </div>
+
+                </div>
+
+
+                <div id="message" class="message">
+
+                    <div class="message-icon">
+                        💡
+                    </div>
+
+                    <div>
+
+                        <strong>
+                            Pronto para começar?
+                        </strong>
+
+                        <p>
+                            Digite um palpite entre 1 e 100.
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <div class="game-stats">
+
+                    <div class="stat">
+
+                        <span>
+                            Tentativas
+                        </span>
+
+                        <strong id="attempts">
+                            0
+                        </strong>
+
+                    </div>
+
+                    <div class="stat">
+
+                        <span>
+                            Pontos possíveis
+                        </span>
+
+                        <strong id="possiblePoints">
+                            1000
+                        </strong>
+
+                    </div>
+
+                    <div class="stat">
+
+                        <span>
+                            Melhor pontuação
+                        </span>
+
+                        <strong id="bestScore">
+                            0
+                        </strong>
+
+                    </div>
+
+                </div>
+
+
+                <button
+                    id="newGameButton"
+                    class="new-game-button"
+                    type="button"
+                    hidden
+                >
+                    🔄 Nova rodada
+                </button>
+
+            </div>
+
+
+            <aside class="ranking-card">
+
+                <div class="ranking-header">
+
+                    <div class="trophy">
+                        🏆
+                    </div>
+
+                    <div>
+
+                        <span class="section-label">
+                            PLACAR
+                        </span>
+
+                        <h2>
+                            Ranking
+                        </h2>
+
+                    </div>
+
+                </div>
+
+
+                <p class="ranking-description">
+                    Os melhores resultados ficam registrados
+                    neste navegador.
+                </p>
+
+
+                <div
+                    id="rankingList"
+                    class="ranking-list"
+                ></div>
+
+
+                <div class="ranking-footer">
+
+                    <span>
+                        🏅
+                    </span>
+
+                    <p>
+                        Quanto menos tentativas,
+                        <strong>maior sua pontuação.</strong>
+                    </p>
+
+                </div>
+
+            </aside>
+
+        </section>
+
+
+        <section class="rules">
+
+            <div class="rule">
+
+                <span>
+                    01
+                </span>
+
+                <div>
+
+                    <strong>
+                        Faça seu palpite
+                    </strong>
+
+                    <p>
+                        Tente descobrir o número secreto
+                        entre 1 e 100.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div class="rule">
+
+                <span>
+                    02
+                </span>
+
+                <div>
+
+                    <strong>
+                        Use as dicas
+                    </strong>
+
+                    <p>
+                        O jogo informa se o número secreto
+                        é maior ou menor.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div class="rule">
+
+                <span>
+                    03
+                </span>
+
+                <div>
+
+                    <strong>
+                        Faça sua pontuação
+                    </strong>
+
+                    <p>
+                        Quanto menos tentativas,
+                        mais pontos você ganha.
+                    </p>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <footer>
+
+            <p>
+                Adivinhe o Número • HTML • CSS • JavaScript
+            </p>
+
+        </footer>
+
+    </main>
+
+
+    <script src="script.js"></script>
+
+</body>
+
+</html>
