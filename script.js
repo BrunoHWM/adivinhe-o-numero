@@ -1,3 +1,4 @@
+
 const MIN_NUMBER = 1;
 const MAX_NUMBER = 100;
 const INITIAL_POINTS = 1000;
@@ -12,17 +13,33 @@ let gameFinished = false;
 const playerNameInput = document.getElementById("playerName");
 const guessInput = document.getElementById("guess");
 const guessButton = document.getElementById("guessButton");
-const newRoundButton = document.getElementById("newRoundButton");
-const refreshRankingButton = document.getElementById("refreshRanking");
+const newGameButton = document.getElementById("newGameButton");
 const messageElement = document.getElementById("message");
 const attemptsElement = document.getElementById("attempts");
-const scoreElement = document.getElementById("score");
+const scoreElement = document.getElementById("possiblePoints");
 const bestScoreElement = document.getElementById("bestScore");
-const roundElement = document.getElementById("round");
+const roundElement = document.getElementById("roundNumber");
 const rankingList = document.getElementById("rankingList");
 
+function showMessage(title, description, type = "") {
+    messageElement.className = `message ${type}`.trim();
+
+    const strong = messageElement.querySelector("strong");
+    const paragraph = messageElement.querySelector("p");
+
+    if (strong && paragraph) {
+        strong.textContent = title;
+        paragraph.textContent = description;
+    } else {
+        messageElement.textContent = `${title} ${description}`;
+    }
+}
+
 function startGame() {
-    secretNumber = Math.floor(Math.random() * MAX_NUMBER) + MIN_NUMBER;
+    secretNumber = Math.floor(
+        Math.random() * (MAX_NUMBER - MIN_NUMBER + 1)
+    ) + MIN_NUMBER;
+
     attempts = 0;
     score = INITIAL_POINTS;
     gameFinished = false;
@@ -31,13 +48,17 @@ function startGame() {
     scoreElement.textContent = score;
     roundElement.textContent = round;
 
-    messageElement.textContent = "Digite um número entre 1 e 100.";
-    messageElement.className = "message";
-
     guessInput.value = "";
     guessInput.disabled = false;
     guessButton.disabled = false;
-    newRoundButton.hidden = true;
+    newGameButton.hidden = true;
+
+    showMessage(
+        "Pronto para começar?",
+        "Digite um palpite entre 1 e 100."
+    );
+
+    guessInput.focus();
 }
 
 async function submitGuess() {
@@ -48,7 +69,7 @@ async function submitGuess() {
     const palpite = Number(valor);
 
     if (!nome) {
-        messageElement.textContent = "Digite seu nome antes de jogar.";
+        showMessage("Falta seu nome!", "Digite seu nome antes de jogar.");
         playerNameInput.focus();
         return;
     }
@@ -59,7 +80,10 @@ async function submitGuess() {
         palpite < MIN_NUMBER ||
         palpite > MAX_NUMBER
     ) {
-        messageElement.textContent = "Digite um número inteiro entre 1 e 100.";
+        showMessage(
+            "Palpite inválido!",
+            "Digite um número inteiro entre 1 e 100."
+        );
         guessInput.focus();
         return;
     }
@@ -70,13 +94,15 @@ async function submitGuess() {
     if (palpite === secretNumber) {
         gameFinished = true;
 
-        messageElement.textContent =
-            `Parabéns, ${nome}! Você acertou em ${attempts} tentativa(s)!`;
-        messageElement.className = "message success";
-
         guessInput.disabled = true;
         guessButton.disabled = true;
-        newRoundButton.hidden = false;
+        newGameButton.hidden = false;
+
+        showMessage(
+            `Parabéns, ${nome}!`,
+            `Você acertou em ${attempts} tentativa(s)!`,
+            "success"
+        );
 
         await saveScore(nome, score, attempts);
         return;
@@ -90,67 +116,93 @@ async function submitGuess() {
     scoreElement.textContent = score;
 
     if (palpite < secretNumber) {
-        messageElement.textContent = "O número secreto é MAIOR. Tente novamente!";
+        showMessage("Quase lá!", "O número secreto é MAIOR. Tente novamente.");
     } else {
-        messageElement.textContent = "O número secreto é MENOR. Tente novamente!";
+        showMessage("Quase lá!", "O número secreto é MENOR. Tente novamente.");
     }
 
-    messageElement.className = "message";
     guessInput.value = "";
     guessInput.focus();
 }
 
 async function loadRanking() {
-    rankingList.innerHTML = "<li>Carregando ranking...</li>";
+    rankingList.replaceChildren();
+
+    const loading = document.createElement("p");
+    loading.textContent = "Carregando ranking...";
+    rankingList.appendChild(loading);
 
     try {
-        const response = await fetch("/api/ranking");
+        const response = await fetch("/api/ranking", {
+            cache: "no-store"
+        });
 
         if (!response.ok) {
-            throw new Error("Falha ao consultar o ranking.");
+            throw new Error(`Erro HTTP ${response.status}`);
         }
 
         const ranking = await response.json();
-        rankingList.innerHTML = "";
+
+        rankingList.replaceChildren();
 
         if (!Array.isArray(ranking) || ranking.length === 0) {
-            rankingList.innerHTML =
-                "<li>Ainda não há pontuações registradas.</li>";
-            bestScoreElement.textContent = "—";
+            const empty = document.createElement("p");
+            empty.textContent = "Ainda não há pontuações registradas.";
+            rankingList.appendChild(empty);
+            bestScoreElement.textContent = "0";
             return;
         }
 
         ranking.forEach((jogador, index) => {
-            const item = document.createElement("li");
-            const nome = document.createElement("span");
-            const pontos = document.createElement("strong");
+            const item = document.createElement("div");
+            item.className = "ranking-item";
 
-            nome.textContent = `${index + 1}. ${jogador.nome}`;
-            pontos.textContent = `${jogador.pontuacao} pts`;
+            const position = document.createElement("span");
+            position.className = "ranking-position";
+            position.textContent = `${index + 1}º`;
 
-            item.append(nome, pontos);
+            const name = document.createElement("span");
+            name.className = "ranking-name";
+            name.textContent = jogador.nome;
+
+            const points = document.createElement("strong");
+            points.className = "ranking-score";
+            points.textContent = `${jogador.pontuacao} pts`;
+
+            item.append(position, name, points);
             rankingList.appendChild(item);
         });
 
         const nomeAtual = playerNameInput.value.trim().toLowerCase();
 
-        const pontuacoesPessoais = ranking
-            .filter(jogador => jogador.nome.toLowerCase() === nomeAtual)
+        const pontuacoes = ranking
+            .filter(jogador =>
+                jogador.nome.toLowerCase() === nomeAtual
+            )
             .map(jogador => Number(jogador.pontuacao));
 
-        bestScoreElement.textContent = pontuacoesPessoais.length
-            ? Math.max(...pontuacoesPessoais)
-            : "—";
+        bestScoreElement.textContent = pontuacoes.length
+            ? Math.max(...pontuacoes)
+            : "0";
 
     } catch (error) {
         console.error("Erro ao carregar ranking:", error);
-        rankingList.innerHTML =
-            "<li>Não foi possível carregar o ranking.</li>";
+
+        rankingList.replaceChildren();
+
+        const errorMessage = document.createElement("p");
+        errorMessage.textContent =
+            "Não foi possível carregar o ranking. Tente novamente mais tarde.";
+
+        rankingList.appendChild(errorMessage);
     }
 }
 
 async function saveScore(nome, pontuacao, tentativas) {
-    messageElement.textContent = "Salvando pontuação...";
+    showMessage(
+        "Salvando resultado...",
+        "Aguarde enquanto registramos sua pontuação."
+    );
 
     try {
         const response = await fetch("/api/ranking", {
@@ -166,19 +218,25 @@ async function saveScore(nome, pontuacao, tentativas) {
         });
 
         if (!response.ok) {
-            throw new Error("Falha ao salvar pontuação.");
+            const result = await response.json().catch(() => ({}));
+            throw new Error(result.error || `Erro HTTP ${response.status}`);
         }
 
-        messageElement.textContent =
-            "Pontuação salva no ranking global!";
+        showMessage(
+            "Pontuação registrada!",
+            "Seu resultado foi enviado ao ranking global.",
+            "success"
+        );
 
         await loadRanking();
 
     } catch (error) {
         console.error("Erro ao salvar pontuação:", error);
 
-        messageElement.textContent =
-            "Você acertou, mas não foi possível salvar a pontuação.";
+        showMessage(
+            "Você acertou!",
+            "Não foi possível salvar a pontuação. Verifique a conexão e tente novamente."
+        );
     }
 }
 
@@ -188,8 +246,7 @@ function nextRound() {
 }
 
 guessButton.addEventListener("click", submitGuess);
-newRoundButton.addEventListener("click", nextRound);
-refreshRankingButton.addEventListener("click", loadRanking);
+newGameButton.addEventListener("click", nextRound);
 
 guessInput.addEventListener("keydown", event => {
     if (event.key === "Enter") {
