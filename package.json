@@ -1,0 +1,10 @@
+
+{
+  "name": "adivinhe-o-numero",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Jogo de adivinhação com ranking global usando Supabase e Vercel",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.57.4"
+  }
+}

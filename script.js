@@ -1,575 +1,203 @@
-/* ========================================
-   ADIVINHE O NÚMERO
-======================================== */
-
-
-/* ========================================
-   CONFIGURAÇÕES
-======================================== */
-
 const MIN_NUMBER = 1;
 const MAX_NUMBER = 100;
 const INITIAL_POINTS = 1000;
-
-
-/* ========================================
-   ELEMENTOS
-======================================== */
-
-const playerNameInput =
-    document.getElementById("playerName");
-
-const guessInput =
-    document.getElementById("guess");
-
-const guessButton =
-    document.getElementById("guessButton");
-
-const message =
-    document.getElementById("message");
-
-const attemptsElement =
-    document.getElementById("attempts");
-
-const possiblePointsElement =
-    document.getElementById("possiblePoints");
-
-const bestScoreElement =
-    document.getElementById("bestScore");
-
-const newGameButton =
-    document.getElementById("newGameButton");
-
-const rankingList =
-    document.getElementById("rankingList");
-
-const roundNumberElement =
-    document.getElementById("roundNumber");
-
-
-/* ========================================
-   VARIÁVEIS
-======================================== */
+const POINTS_LOST_PER_MISS = 50;
 
 let secretNumber;
-
 let attempts = 0;
-
+let score = INITIAL_POINTS;
 let round = 1;
-
 let gameFinished = false;
 
-
-/* ========================================
-   RANKING
-======================================== */
-
-let ranking =
-    JSON.parse(
-        localStorage.getItem("numberGameRanking")
-    ) || [];
-
-
-/* ========================================
-   GERAR NÚMERO
-======================================== */
-
-function generateRandomNumber() {
-
-    return Math.floor(
-        Math.random() *
-        (MAX_NUMBER - MIN_NUMBER + 1)
-    ) + MIN_NUMBER;
-
-}
-
-
-/* ========================================
-   INICIAR JOGO
-======================================== */
+const playerNameInput = document.getElementById("playerName");
+const guessInput = document.getElementById("guess");
+const guessButton = document.getElementById("guessButton");
+const newRoundButton = document.getElementById("newRoundButton");
+const refreshRankingButton = document.getElementById("refreshRanking");
+const messageElement = document.getElementById("message");
+const attemptsElement = document.getElementById("attempts");
+const scoreElement = document.getElementById("score");
+const bestScoreElement = document.getElementById("bestScore");
+const roundElement = document.getElementById("round");
+const rankingList = document.getElementById("rankingList");
 
 function startGame() {
-
-    secretNumber =
-        generateRandomNumber();
-
+    secretNumber = Math.floor(Math.random() * MAX_NUMBER) + MIN_NUMBER;
     attempts = 0;
-
+    score = INITIAL_POINTS;
     gameFinished = false;
 
-    guessInput.disabled = false;
+    attemptsElement.textContent = attempts;
+    scoreElement.textContent = score;
+    roundElement.textContent = round;
 
-    guessButton.disabled = false;
-
-    newGameButton.hidden = true;
-
-    attemptsElement.textContent = "0";
-
-    possiblePointsElement.textContent =
-        INITIAL_POINTS;
-
-    roundNumberElement.textContent =
-        round;
-
-    showMessage(
-        "Pronto para começar?",
-        "Digite um palpite entre 1 e 100.",
-        "💡"
-    );
+    messageElement.textContent = "Digite um número entre 1 e 100.";
+    messageElement.className = "message";
 
     guessInput.value = "";
-
-    guessInput.focus();
-
-    updateBestScore();
+    guessInput.disabled = false;
+    guessButton.disabled = false;
+    newRoundButton.hidden = true;
 }
 
+async function submitGuess() {
+    if (gameFinished) return;
 
-/* ========================================
-   FAZER PALPITE
-======================================== */
+    const nome = playerNameInput.value.trim();
+    const valor = guessInput.value.trim();
+    const palpite = Number(valor);
 
-function makeGuess() {
-
-    if (gameFinished) {
-        return;
-    }
-
-
-    const playerName =
-        playerNameInput.value.trim();
-
-
-    if (!playerName) {
-
-        showMessage(
-            "Digite seu nome!",
-            "Precisamos saber quem está jogando.",
-            "👤",
-            "warning"
-        );
-
+    if (!nome) {
+        messageElement.textContent = "Digite seu nome antes de jogar.";
         playerNameInput.focus();
-
         return;
     }
-
-
-    const guess =
-        Number(guessInput.value);
-
 
     if (
-        !guess ||
-        guess < MIN_NUMBER ||
-        guess > MAX_NUMBER
+        valor === "" ||
+        !Number.isInteger(palpite) ||
+        palpite < MIN_NUMBER ||
+        palpite > MAX_NUMBER
     ) {
-
-        showMessage(
-            "Número inválido!",
-            "Digite um número entre 1 e 100.",
-            "⚠️",
-            "warning"
-        );
-
+        messageElement.textContent = "Digite um número inteiro entre 1 e 100.";
         guessInput.focus();
-
         return;
     }
-
 
     attempts++;
+    attemptsElement.textContent = attempts;
 
-    attemptsElement.textContent =
-        attempts;
+    if (palpite === secretNumber) {
+        gameFinished = true;
 
+        messageElement.textContent =
+            `Parabéns, ${nome}! Você acertou em ${attempts} tentativa(s)!`;
+        messageElement.className = "message success";
 
-    if (guess === secretNumber) {
+        guessInput.disabled = true;
+        guessButton.disabled = true;
+        newRoundButton.hidden = false;
 
-        winGame(playerName);
-
+        await saveScore(nome, score, attempts);
         return;
     }
 
+    score = Math.max(
+        100,
+        INITIAL_POINTS - attempts * POINTS_LOST_PER_MISS
+    );
 
-    if (guess < secretNumber) {
+    scoreElement.textContent = score;
 
-        showMessage(
-            "O número secreto é MAIOR!",
-            `Tente um número acima de ${guess}.`,
-            "⬆️"
-        );
-
+    if (palpite < secretNumber) {
+        messageElement.textContent = "O número secreto é MAIOR. Tente novamente!";
     } else {
-
-        showMessage(
-            "O número secreto é MENOR!",
-            `Tente um número abaixo de ${guess}.`,
-            "⬇️"
-        );
-
+        messageElement.textContent = "O número secreto é MENOR. Tente novamente!";
     }
 
-
-    updatePossiblePoints();
-
+    messageElement.className = "message";
     guessInput.value = "";
-
     guessInput.focus();
 }
 
+async function loadRanking() {
+    rankingList.innerHTML = "<li>Carregando ranking...</li>";
 
-/* ========================================
-   VITÓRIA
-======================================== */
+    try {
+        const response = await fetch("/api/ranking");
 
-function winGame(playerName) {
-
-    gameFinished = true;
-
-    guessInput.disabled = true;
-
-    guessButton.disabled = true;
-
-    newGameButton.hidden = false;
-
-
-    const score =
-        calculateScore();
-
-
-    showMessage(
-        "🎉 Você acertou!",
-        `O número era ${secretNumber}. Você fez ${score} pontos!`,
-        "🏆",
-        "success"
-    );
-
-
-    possiblePointsElement.textContent =
-        score;
-
-
-    saveScore(
-        playerName,
-        score,
-        attempts
-    );
-
-
-    updateRanking();
-
-    updateBestScore();
-}
-
-
-/* ========================================
-   PONTUAÇÃO
-======================================== */
-
-function calculateScore() {
-
-    const score =
-        INITIAL_POINTS -
-        ((attempts - 1) * 50);
-
-    return Math.max(score, 100);
-}
-
-
-function updatePossiblePoints() {
-
-    const points =
-        Math.max(
-            INITIAL_POINTS -
-            (attempts * 50),
-            100
-        );
-
-    possiblePointsElement.textContent =
-        points;
-}
-
-
-/* ========================================
-   MENSAGEM
-======================================== */
-
-function showMessage(
-    title,
-    description,
-    icon,
-    type = ""
-) {
-
-    message.className = "message";
-
-
-    if (type) {
-        message.classList.add(type);
-    }
-
-
-    message.innerHTML = `
-
-        <div class="message-icon">
-            ${icon}
-        </div>
-
-        <div>
-
-            <strong>
-                ${title}
-            </strong>
-
-            <p>
-                ${description}
-            </p>
-
-        </div>
-
-    `;
-}
-
-
-/* ========================================
-   SALVAR PONTUAÇÃO
-======================================== */
-
-function saveScore(
-    playerName,
-    score,
-    attempts
-) {
-
-    const player = {
-
-        name: playerName,
-
-        score: score,
-
-        attempts: attempts,
-
-        date:
-            new Date()
-                .toLocaleDateString("pt-BR")
-    };
-
-
-    ranking.push(player);
-
-
-    ranking.sort(
-        (a, b) =>
-            b.score - a.score
-    );
-
-
-    ranking =
-        ranking.slice(0, 10);
-
-
-    localStorage.setItem(
-        "numberGameRanking",
-        JSON.stringify(ranking)
-    );
-}
-
-
-/* ========================================
-   ATUALIZAR RANKING
-======================================== */
-
-function updateRanking() {
-
-    rankingList.innerHTML = "";
-
-
-    if (ranking.length === 0) {
-
-        rankingList.innerHTML = `
-
-            <div class="empty-ranking">
-
-                <div>
-
-                    <span>
-                        🏆
-                    </span>
-
-                    <p>
-                        Ainda não existem jogadores
-                        <br>
-                        no ranking.
-                    </p>
-
-                </div>
-
-            </div>
-
-        `;
-
-        return;
-    }
-
-
-    ranking.forEach(
-        (player, index) => {
-
-            const item =
-                document.createElement("div");
-
-
-            item.className =
-                "ranking-item";
-
-
-            let position;
-
-
-            if (index === 0) {
-
-                position = "🥇";
-
-            } else if (index === 1) {
-
-                position = "🥈";
-
-            } else if (index === 2) {
-
-                position = "🥉";
-
-            } else {
-
-                position = index + 1;
-            }
-
-
-            item.innerHTML = `
-
-                <div class="ranking-position">
-                    ${position}
-                </div>
-
-                <div>
-
-                    <div class="ranking-name">
-                        ${escapeHTML(player.name)}
-                    </div>
-
-                    <div class="ranking-attempts">
-                        ${player.attempts}
-                        tentativa(s)
-                    </div>
-
-                </div>
-
-                <div class="ranking-score">
-                    ${player.score}
-                </div>
-
-            `;
-
-
-            rankingList.appendChild(item);
+        if (!response.ok) {
+            throw new Error("Falha ao consultar o ranking.");
         }
-    );
-}
 
+        const ranking = await response.json();
+        rankingList.innerHTML = "";
 
-/* ========================================
-   MELHOR PONTUAÇÃO
-======================================== */
+        if (!Array.isArray(ranking) || ranking.length === 0) {
+            rankingList.innerHTML =
+                "<li>Ainda não há pontuações registradas.</li>";
+            bestScoreElement.textContent = "—";
+            return;
+        }
 
-function updateBestScore() {
+        ranking.forEach((jogador, index) => {
+            const item = document.createElement("li");
+            const nome = document.createElement("span");
+            const pontos = document.createElement("strong");
 
-    if (ranking.length === 0) {
+            nome.textContent = `${index + 1}. ${jogador.nome}`;
+            pontos.textContent = `${jogador.pontuacao} pts`;
 
-        bestScoreElement.textContent =
-            "0";
+            item.append(nome, pontos);
+            rankingList.appendChild(item);
+        });
 
-        return;
+        const nomeAtual = playerNameInput.value.trim().toLowerCase();
+
+        const pontuacoesPessoais = ranking
+            .filter(jogador => jogador.nome.toLowerCase() === nomeAtual)
+            .map(jogador => Number(jogador.pontuacao));
+
+        bestScoreElement.textContent = pontuacoesPessoais.length
+            ? Math.max(...pontuacoesPessoais)
+            : "—";
+
+    } catch (error) {
+        console.error("Erro ao carregar ranking:", error);
+        rankingList.innerHTML =
+            "<li>Não foi possível carregar o ranking.</li>";
     }
-
-
-    bestScoreElement.textContent =
-        ranking[0].score;
 }
 
+async function saveScore(nome, pontuacao, tentativas) {
+    messageElement.textContent = "Salvando pontuação...";
 
-/* ========================================
-   SEGURANÇA
-======================================== */
+    try {
+        const response = await fetch("/api/ranking", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                nome,
+                pontuacao,
+                tentativas
+            })
+        });
 
-function escapeHTML(text) {
+        if (!response.ok) {
+            throw new Error("Falha ao salvar pontuação.");
+        }
 
-    const div =
-        document.createElement("div");
+        messageElement.textContent =
+            "Pontuação salva no ranking global!";
 
-    div.textContent = text;
+        await loadRanking();
 
-    return div.innerHTML;
+    } catch (error) {
+        console.error("Erro ao salvar pontuação:", error);
+
+        messageElement.textContent =
+            "Você acertou, mas não foi possível salvar a pontuação.";
+    }
 }
 
-
-/* ========================================
-   NOVA RODADA
-======================================== */
-
-function newGame() {
-
+function nextRound() {
     round++;
-
     startGame();
 }
 
+guessButton.addEventListener("click", submitGuess);
+newRoundButton.addEventListener("click", nextRound);
+refreshRankingButton.addEventListener("click", loadRanking);
 
-/* ========================================
-   EVENTOS
-======================================== */
-
-guessButton.addEventListener(
-    "click",
-    makeGuess
-);
-
-
-newGameButton.addEventListener(
-    "click",
-    newGame
-);
-
-
-guessInput.addEventListener(
-    "keydown",
-    function (event) {
-
-        if (event.key === "Enter") {
-            makeGuess();
-        }
-
+guessInput.addEventListener("keydown", event => {
+    if (event.key === "Enter") {
+        submitGuess();
     }
-);
+});
 
-
-playerNameInput.addEventListener(
-    "keydown",
-    function (event) {
-
-        if (event.key === "Enter") {
-            guessInput.focus();
-        }
-
-    }
-);
-
-
-/* ========================================
-   INICIALIZAÇÃO
-======================================== */
-
-updateRanking();
-
-updateBestScore();
+playerNameInput.addEventListener("change", loadRanking);
 
 startGame();
+loadRanking();
